@@ -1,2 +1,5 @@
 *.csv
 *.zip
+*.pyc
+.vscode/
+ML.xlsx
