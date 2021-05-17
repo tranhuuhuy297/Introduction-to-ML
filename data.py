@@ -250,3 +250,75 @@ def credit_card_balance(args, nan_as_category=True):
     gc.collect()
 
     return cc_agg
+
+
+def data_explain(args):
+    # Application Main File
+    df_train = get_raw_df(args, 'application_train')
+    df_test = get_raw_df(args, 'application_test')
+
+    # Bureau File
+    df_bureau = get_raw_df(args, 'bureau')
+    df_bureau_balance = get_raw_df(args, 'bureau_balance')
+
+    # Previous Application
+    df_previous_application = get_raw_df(args, 'previous_application')
+
+    df_pos_cash_balance = get_raw_df(args, 'POS_CASH_balance')
+    df_installments_payments = get_raw_df(args, 'installments_payments')
+    df_credit_card_balance = get_raw_df(args, 'credit_card_balance')
+
+
+def data_debug(args):
+    print('-----Debug mod, only read 100 rows')
+    args.nrows = 100
+    if not os.path.exists(os.path.join(os.getcwd(), 'debug_file')): os.mkdir('debug_file')
+
+    application_train_test(args).to_csv('debug_file/' + 'application.csv', index=False)
+    print('     Done Application')
+    bureau(args).to_csv('debug_file/' + 'bureau.csv', index=False)
+    print('     Done Bureau')
+    previous_application(args).to_csv('debug_file/' + 'prev.csv')
+    print('     Done Previous Application')
+    pos_cash(args).to_csv('debug_file/' + 'pos_cash.csv')
+    print('     Done POS Cash')
+    installments_payments(args).to_csv('debug_file/' + 'install_payment.csv')
+    print('     Done Install Payment')
+    credit_card_balance(args).to_csv('debug_file/' + 'credit_card.csv')
+    print('     Done Credit Card')
+
+
+def read_data(args):
+    df = application_train_test(args, nan_as_category=True)
+
+    # Bureau
+    df_bureau = bureau(args)
+    df = df.join(df_bureau, how='left', on='SK_ID_CURR')
+    del df_bureau
+    gc.collect()
+
+    # Previous Apllication
+    df_prev = previous_application(args)
+    df = df.join(df_prev, how='left', on='SK_ID_CURR')
+    del df_prev
+    gc.collect()
+
+    # POS cash
+    df_pos_cash = pos_cash(args)
+    df = df.join(df_pos_cash, how='left', on='SK_ID_CURR')
+    del df_pos_cash
+    gc.collect()
+
+    # Install payment
+    df_ins_pay = installments_payments(args)
+    df = df.join(df_ins_pay, how='left', on='SK_ID_CURR')
+    del df_ins_pay
+    gc.collect()
+
+    # Credit Card
+    df_credit = credit_card_balance(args)
+    df = df.join(df_credit, how='left', on='SK_ID_CURR')
+    del df_credit
+    gc.collect()
+
+    return df
