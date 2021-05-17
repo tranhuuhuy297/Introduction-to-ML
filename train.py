@@ -53,38 +53,38 @@ def read_data(args):
     df = application_train_test(args, nan_as_category=True)
 
     # Bureau
-    bureau = bureau(args)
-    df = df.join(bureau, how='left', on='SK_ID_CURR')
-    del bureau
+    df_bureau = bureau(args)
+    df = df.join(df_bureau, how='left', on='SK_ID_CURR')
+    del df_bureau
     gc.collect()
 
     # Previous Apllication
-    prev = previous_application(args)
-    df = df.join(prev, how='left', on='SK_ID_CURR')
-    del prev
+    df_prev = previous_application(args)
+    df = df.join(df_prev, how='left', on='SK_ID_CURR')
+    del df_prev
     gc.collect()
 
     # POS cash
-    pos_cash = pos_cash(args)
-    df = df.join(pos_cash, how='left', on='SK_ID_CURR')
-    del pos_cash
+    df_pos_cash = pos_cash(args)
+    df = df.join(df_pos_cash, how='left', on='SK_ID_CURR')
+    del df_pos_cash
     gc.collect()
 
     # Install payment
-    ins_pay = installments_payments(args)
-    df = df.join(pos_cash, how='left', on='SK_ID_CURR')
-    del ins_pay
+    df_ins_pay = installments_payments(args)
+    df = df.join(df_ins_pay, how='left', on='SK_ID_CURR')
+    del df_ins_pay
     gc.collect()
 
     # Credit Card
-    credit = credit_card_balance(args)
-    df = df.join(credit, how='left', on='SK_ID_CURR')
-    del credit
+    df_credit = credit_card_balance(args)
+    df = df.join(df_credit, how='left', on='SK_ID_CURR')
+    del df_credit
     gc.collect()
 
     return df
 
-def kfold_ligthgbm(df, num_folds, stratied=True):
+def kfold_ligthgbm(df, num_folds=5, stratied=True):
     # Trong file data mình đã xử lí test chưa có biến target
     df_train = df[df['TARGET'].notnull()]
     df_test = df[df['TARGET'].isnull()]
@@ -139,3 +139,6 @@ def kfold_ligthgbm(df, num_folds, stratied=True):
     print('Full AUC score %.6f' % roc_auc_score(df_train['TARGET'], oof_preds))
 
     return feature_importance_df
+
+df = read_data(args)
+df_feature_inportance = kfold_ligthgbm(df)

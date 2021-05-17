@@ -3,7 +3,7 @@ import pandas as pd
 
 
 def explain(df):
-    df_explain = pd.read_csv('ML.csv')
+    df_explain = pd.read_csv('../ML.csv')
     for i in df.columns.values: 
         if (i not in df_explain.Row.values): continue
         print(i, ' --- ', df_explain[df_explain.Row==i]['Tiếng mẹ đẻ'].values[0])
