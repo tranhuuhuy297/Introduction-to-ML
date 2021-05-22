@@ -63,10 +63,18 @@ def kfold_ligthgbm(df, num_folds=5, stratied=True):
         fold_importance_df["importance"] = clf.feature_importances_
         fold_importance_df["fold"] = n_fold + 1
         feature_importance_df = pd.concat([feature_importance_df, fold_importance_df], axis=0)
-        print('Fold %2d AUC : %.6f' % (n_fold + 1, roc_auc_score(valid_y, oof_preds[valid_idx])))
+        print('Fold %2d AUC : %.6f' % (n_fold + 1, roc_auc_score(valid_y, oof_preds[valid_idx])))   
         del clf, train_x, train_y, valid_x, valid_y
         gc.collect()
 
-    print('Full AUC score %.6f' % roc_auc_score(df_train['TARGET'], oof_preds))
+    print('Full AUC score %.6f' % roc_auc_score(df_train['TARGET'], oof_preds)
+    
+    submission_file_name = "submission_kernel02.csv"
+    if not debug:
+        df_test['TARGET'] = sub_preds
+        df_test[['SK_ID_CURR', 'TARGET']].to_csv(submission_file_name, index= False)
+    display_importances(feature_importance_df)
 
     return feature_importance_df
+
+

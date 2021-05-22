@@ -3,13 +3,20 @@ import gc
 import numpy as np
 import pandas as pd
 
-from utils import explain, one_hot_encoder
+from sklearn import preprocessing
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import PolynomialFeatures
+
+from utils import explain, one_hot_encoder, missing_columns
 
 
 def get_raw_df(args, dataset):
     df = pd.read_csv(args.data_path + dataset + '.csv')
 
     print("Shape of {}: {}".format(dataset, df.shape))
+    print("{}: \n{}".format(dataset.dtypes.value_counts()))
+    print('\n')
+    print(df.select_dtypes('object').apply(pd.Series.nunique))
     explain(df) # Chú thích từng trường dữ liệu
     print('\n')
 
@@ -40,15 +47,63 @@ def application_train_test(args, nan_as_category=True):
     df['NEW_CAR_TO_BIRTH_RATIO'] = df['OWN_CAR_AGE'] / df['DAYS_BIRTH']
     df['NEW_CAR_TO_EMPLOY_RATIO'] = df['OWN_CAR_AGE'] / df['DAYS_EMPLOYED']
     df['NEW_PHONE_TO_BIRTH_RATIO'] = df['DAYS_LAST_PHONE_CHANGE'] / df['DAYS_BIRTH']
-    df['NEW_PHONE_TO_BIRTH_RATIO_EMPLOYER'] = df['DAYS_LAST_PHONE_CHANGE'] / df['DAYS_EMPLOYED']
     df['NEW_CREDIT_TO_INCOME_RATIO'] = df['AMT_CREDIT'] / df['AMT_INCOME_TOTAL']
 
     # Encode categorical feature
     df, df_cat = one_hot_encoder(df, nan_as_category)
 
-    del df_test
+    # Test has no target
+    df_train = df[df.TARGET.notnull()]
+    df_test = df[df.TARGET.isnull()]
+
+    poly_fitting_vars = ['EXT_SOURCE_3', 'EXT_SOURCE_2', 'EXT_SOURCE_1']
+    imputer = SimpleImputer(missing_values=np.nan, strategy='median')
+    poly_feat = PolynomialFeatures(degree=4)
+
+    df_train[poly_fitting_vars] = imputer.fit_transform(df_train[poly_fitting_vars])
+    df_test[poly_fitting_vars] = imputer.transform(df_test[poly_fitting_vars])
+
+    poly_interaction_train = poly_feat.fit_transform(df_train[poly_fitting_vars])
+    poly_interaction_test = poly_feat.transform(df_test[poly_fitting_vars])
+
+    poly_interaction_train = pd.DataFrame(poly_interaction_train, columns=poly_feat.get_feature_names(poly_fitting_vars))
+    poly_interaction_test = pd.DataFrame(poly_interaction_test, columns=poly_feat.get_feature_names(poly_fitting_vars))
+
+    poly_interaction_train['TARGET'] = df_train['TARGET']
+    poly_interaction_test['TARGET'] = df_test['TARGET']
+
+    interaction = poly_interaction_train.corr()['TARGET'].sort_values()
+    selected_inter_variables = list(set(interaction.head(15).index).union(interaction.tail(15).index).difference(set({'1','TARGET'})))
+    unselected_cols = [element for element in poly_interaction_train.columns if element not in selected_inter_variables]
+
+    poly_interaction_train = poly_interaction_train.drop(unselected_cols, axis=1)
+    poly_interaction_test = poly_interaction_test.drop(unselected_cols, axis=1)
+
+    df_train = df_train.join(poly_interaction_train.drop(['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3'], axis=1))
+    df_test = df_test.join(poly_interaction_test.drop(['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3'], axis=1))
+
+    df_train1 = df_train.fillna(df_train.mean())
+    df = df_train1.append(df_test)
+
+    target = df.TARGET.values
+    df = df.drop(['TARGET'], axis=1).fillna(df.mean())
+    df['TARGET'] = target
+    df_train1 = df[df.TARGET.notnull()]
+    df_test1 = df[df.TARGET.isnull()]
+
+    del df
     gc.collect()
-    return df
+
+    for i in missing_columns(df_train1).index.values:
+        for j in df_train1[df_train1[i].isna()].SK_ID_CURR.values:
+            df_train1.drop(df_train1[df_train1['SK_ID_CURR']==j].index, inplace=True)
+
+    for i in df_train1.columns.values[2:]:
+        min_max_scaler = preprocessing.MinMaxScaler()
+        df_train1[i] =  min_max_scaler.fit_transform(pd.DataFrame(df_train1[i]))
+        df_test1[i] = min_max_scaler.transform(pd.DataFrame(df_test1[i]))
+
+    return df_train1, df_test1
 
 def bureau(args, nan_as_category=True):
     df_bureau = pd.read_csv(args.data_path + 'bureau.csv', nrows=args.nrows)
@@ -114,6 +169,8 @@ def bureau(args, nan_as_category=True):
 
     del closed, closed_agg
     gc.collect()
+
+    bureau_agg.drop(missing_columns(bureau_agg).head(32).index.values, axis=1, inplace=True)
 
     return bureau_agg
     
@@ -255,18 +312,34 @@ def credit_card_balance(args, nan_as_category=True):
 def data_explain(args):
     # Application Main File
     df_train = get_raw_df(args, 'application_train')
+    print(missing_columns(df_train)['Missing Count %'])
+    print('-------------------------------------------------------------------------')
     df_test = get_raw_df(args, 'application_test')
+    print(missing_columns(df_test)['Missing Count %'])
+    print('-------------------------------------------------------------------------')
 
     # Bureau File
     df_bureau = get_raw_df(args, 'bureau')
+    print(missing_columns(df_bureau)['Missing Count %'])
+    print('-------------------------------------------------------------------------')
     df_bureau_balance = get_raw_df(args, 'bureau_balance')
+    print(missing_columns(df_bureau_balance)['Missing Count %'])
+    print('-------------------------------------------------------------------------')
 
     # Previous Application
     df_previous_application = get_raw_df(args, 'previous_application')
+    print(missing_columns(df_previous_application)['Missing Count %'])
+    print('-------------------------------------------------------------------------')
 
     df_pos_cash_balance = get_raw_df(args, 'POS_CASH_balance')
+    print(missing_columns(df_pos_cash_balance)['Missing Count %'])
+    print('-------------------------------------------------------------------------')
     df_installments_payments = get_raw_df(args, 'installments_payments')
+    print(missing_columns(df_installments_payments)['Missing Count %'])
+    print('-------------------------------------------------------------------------')
     df_credit_card_balance = get_raw_df(args, 'credit_card_balance')
+    print(missing_columns(df_credit_card_balance)['Missing Count %'])
+    print('-------------------------------------------------------------------------')
 
 
 def data_debug(args):
@@ -289,34 +362,35 @@ def data_debug(args):
 
 
 def read_data(args):
-    df = application_train_test(args, nan_as_category=True)
+    df_train, df_test = application_train_test(args, nan_as_category=args.nan_as_cat)
+    df = df_train.append(df_test)
 
     # Bureau
-    df_bureau = bureau(args)
+    df_bureau = bureau(args, nan_as_category=args.nan_as_cat)
     df = df.join(df_bureau, how='left', on='SK_ID_CURR')
     del df_bureau
     gc.collect()
 
     # Previous Apllication
-    df_prev = previous_application(args)
+    df_prev = previous_application(args, nan_as_category=args.nan_as_cat)
     df = df.join(df_prev, how='left', on='SK_ID_CURR')
     del df_prev
     gc.collect()
 
     # POS cash
-    df_pos_cash = pos_cash(args)
+    df_pos_cash = pos_cash(args, nan_as_category=args.nan_as_cat)
     df = df.join(df_pos_cash, how='left', on='SK_ID_CURR')
     del df_pos_cash
     gc.collect()
 
     # Install payment
-    df_ins_pay = installments_payments(args)
+    df_ins_pay = installments_payments(args, nan_as_category=args.nan_as_cat)
     df = df.join(df_ins_pay, how='left', on='SK_ID_CURR')
     del df_ins_pay
     gc.collect()
 
     # Credit Card
-    df_credit = credit_card_balance(args)
+    df_credit = credit_card_balance(args, nan_as_category=args.nan_as_cat)
     df = df.join(df_credit, how='left', on='SK_ID_CURR')
     del df_credit
     gc.collect()
