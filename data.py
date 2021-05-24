@@ -7,7 +7,7 @@ from sklearn import preprocessing
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import PolynomialFeatures
 
-from utils import explain, one_hot_encoder, missing_columns
+from utils import *
 
 
 def get_raw_df(args, dataset):
@@ -44,6 +44,11 @@ def application_train_test(args, nan_as_category=True):
     df['AIR'] = df['AMT_ANNUITY'] / df['AMT_INCOME_TOTAL']
     df['ACR'] = df['AMT_ANNUITY'] / df['AMT_CREDIT']
     df['DAR'] = df['DAYS_EMPLOYED'] / df['DAYS_BIRTH']
+
+    y_list = [i for i in df.columns.values if df[i].dtype != 'O'][2:]
+    for y in y_list:
+        temp = remove_outlier_IQR(df[['TARGET', y]])
+        df[y] = temp[y]
 
     # Encode categorical feature
     df, df_cat = one_hot_encoder(df, nan_as_category)

@@ -43,3 +43,13 @@ def missing_columns(dataframe):
     
     # return the required values
     return concat_values[concat_values.iloc[:,1]!=0]
+
+
+def remove_outlier_IQR(df):
+    target = df['TARGET']
+    Q1 = df.quantile(0.25)
+    Q3 = df.quantile(0.75)
+    IQR = Q3-Q1
+    df_final = df[~((df < (Q1 - 1.5*IQR)) | (df > (Q3 + 1.5*IQR)))]
+    df_final['TARGET'] = target
+    return df_final
