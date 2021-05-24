@@ -40,14 +40,10 @@ def application_train_test(args, nan_as_category=True):
     df['DAYS_EMPLOYED'].replace(365243, np.nan, inplace= True)
 
     # Create some new features
-    df['NEW_CREDIT_TO_ANNUITY_RATIO'] = df['AMT_CREDIT'] / df['AMT_ANNUITY']
-    df['NEW_CREDIT_TO_GOODS_RATIO'] = df['AMT_CREDIT'] / df['AMT_GOODS_PRICE']
-    df['NEW_EMPLOY_TO_BIRTH_RATIO'] = df['DAYS_EMPLOYED'] / df['DAYS_BIRTH']
-    df['NEW_ANNUITY_TO_INCOME_RATIO'] = df['AMT_ANNUITY'] / (1 + df['AMT_INCOME_TOTAL'])
-    df['NEW_CAR_TO_BIRTH_RATIO'] = df['OWN_CAR_AGE'] / df['DAYS_BIRTH']
-    df['NEW_CAR_TO_EMPLOY_RATIO'] = df['OWN_CAR_AGE'] / df['DAYS_EMPLOYED']
-    df['NEW_PHONE_TO_BIRTH_RATIO'] = df['DAYS_LAST_PHONE_CHANGE'] / df['DAYS_BIRTH']
-    df['NEW_CREDIT_TO_INCOME_RATIO'] = df['AMT_CREDIT'] / df['AMT_INCOME_TOTAL']
+    df['DIR'] = df['AMT_CREDIT'] / df['AMT_INCOME_TOTAL']
+    df['AIR'] = df['AMT_ANNUITY'] / df['AMT_INCOME_TOTAL']
+    df['ACR'] = df['AMT_ANNUITY'] / df['AMT_CREDIT']
+    df['DAR'] = df['DAYS_EMPLOYED'] / df['DAYS_BIRTH']
 
     # Encode categorical feature
     df, df_cat = one_hot_encoder(df, nan_as_category)
@@ -171,6 +167,7 @@ def bureau(args, nan_as_category=True):
     gc.collect()
 
     bureau_agg.drop(missing_columns(bureau_agg).head(32).index.values, axis=1, inplace=True)
+    bureau_agg.fillna(bureau_agg.mean())
 
     return bureau_agg
     

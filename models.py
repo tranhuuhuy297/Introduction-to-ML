@@ -15,7 +15,7 @@ from parameters import get_args
 
 
 # Light GBM
-def kfold_ligthgbm(df, num_folds=5, stratied=True):
+def kfold_ligthgbm(df, num_folds=5, stratified=True):
     # Trong file data mình đã xử lí test chưa có biến target
     df_train = df[df['TARGET'].notnull()]
     df_test = df[df['TARGET'].isnull()]
