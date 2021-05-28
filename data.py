@@ -106,7 +106,7 @@ def bureau(args, nan_as_category=True):
     bureau, bureau_cat = one_hot_encoder(df_bureau, nan_as_category)
     bb, bb_cat = one_hot_encoder(df_bureau_balance, nan_as_category)
 
-    # Tính mean của các lần bureau trướ
+    # Tính mean của các lần bureau trước
     bb_aggregations = {'MONTHS_BALANCE': ['min', 'max', 'size']}
     for col in bb_cat:
         bb_aggregations[col] = ['mean']
