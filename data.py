@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 
 from sklearn import preprocessing
-from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import PolynomialFeatures
 
 from utils import *
@@ -26,6 +25,8 @@ def application_train_test(args, nan_as_category=True):
     df_train = pd.read_csv(args.data_path + 'application_train.csv', nrows=args.nrows)
     df_test = pd.read_csv(args.data_path + 'application_test.csv', nrows=args.nrows)
 
+    df_train = df_train.drop(missing_columns(df_train).head(26).index.values, axis=1)
+
     # Trộn train và test
     df = df_train.copy()
     df = df.append(df_test)
@@ -45,11 +46,6 @@ def application_train_test(args, nan_as_category=True):
     df['ACR'] = df['AMT_ANNUITY'] / df['AMT_CREDIT']
     df['DAR'] = df['DAYS_EMPLOYED'] / df['DAYS_BIRTH']
 
-    y_list = [i for i in df.columns.values if df[i].dtype != 'O'][2:]
-    for y in y_list:
-        temp = remove_outlier_IQR(df[['TARGET', y]])
-        df[y] = temp[y]
-
     # Encode categorical feature
     df, df_cat = one_hot_encoder(df, nan_as_category)
 
@@ -57,12 +53,11 @@ def application_train_test(args, nan_as_category=True):
     df_train = df[df.TARGET.notnull()]
     df_test = df[df.TARGET.isnull()]
 
-    poly_fitting_vars = ['EXT_SOURCE_3', 'EXT_SOURCE_2', 'EXT_SOURCE_1']
-    imputer = SimpleImputer(missing_values=np.nan, strategy='median')
-    poly_feat = PolynomialFeatures(degree=4)
+    poly_fitting_vars = ['EXT_SOURCE_3', 'EXT_SOURCE_2', 'EXT_SOURCE_1', 'DAR']
+    df_train[poly_fitting_vars] = df_train[poly_fitting_vars].fillna(df_train[poly_fitting_vars].median())
+    df_test[poly_fitting_vars] = df_test[poly_fitting_vars].fillna(df_test[poly_fitting_vars].median())
 
-    df_train[poly_fitting_vars] = imputer.fit_transform(df_train[poly_fitting_vars])
-    df_test[poly_fitting_vars] = imputer.transform(df_test[poly_fitting_vars])
+    poly_feat = PolynomialFeatures(degree=4)
 
     poly_interaction_train = poly_feat.fit_transform(df_train[poly_fitting_vars])
     poly_interaction_test = poly_feat.transform(df_test[poly_fitting_vars])
@@ -80,15 +75,12 @@ def application_train_test(args, nan_as_category=True):
     poly_interaction_train = poly_interaction_train.drop(unselected_cols, axis=1)
     poly_interaction_test = poly_interaction_test.drop(unselected_cols, axis=1)
 
-    df_train = df_train.join(poly_interaction_train.drop(['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3'], axis=1))
-    df_test = df_test.join(poly_interaction_test.drop(['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3'], axis=1))
+    df_train = df_train.join(poly_interaction_train.drop(['EXT_SOURCE_2'], axis=1))
+    df_test = df_test.join(poly_interaction_test.drop(['EXT_SOURCE_2'], axis=1))
 
-    df_train1 = df_train.fillna(df_train.mean())
-    df = df_train1.append(df_test)
+    # df_train1 = df_train.fillna(df_train.mean())
+    df = df_train.append(df_test)
 
-    target = df.TARGET.values
-    df = df.drop(['TARGET'], axis=1).fillna(df.mean())
-    df['TARGET'] = target
     df_train1 = df[df.TARGET.notnull()]
     df_test1 = df[df.TARGET.isnull()]
 
@@ -99,10 +91,10 @@ def application_train_test(args, nan_as_category=True):
         for j in df_train1[df_train1[i].isna()].SK_ID_CURR.values:
             df_train1.drop(df_train1[df_train1['SK_ID_CURR']==j].index, inplace=True)
 
-    for i in df_train1.columns.values[2:]:
-        min_max_scaler = preprocessing.MinMaxScaler()
-        df_train1[i] =  min_max_scaler.fit_transform(pd.DataFrame(df_train1[i]))
-        df_test1[i] = min_max_scaler.transform(pd.DataFrame(df_test1[i]))
+    for i in df_train1.columns.difference(['TARGET', 'SK_ID_CURR']).values:
+        scaler_ = preprocessing.StandardScaler()
+        df_train1[i] =  scaler_.fit_transform(pd.DataFrame(df_train1[i]))
+        df_test1[i] = scaler_.transform(pd.DataFrame(df_test1[i]))
 
     return df_train1, df_test1
 
