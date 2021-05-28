@@ -75,8 +75,8 @@ def application_train_test(args, nan_as_category=True):
     poly_interaction_train = poly_interaction_train.drop(unselected_cols, axis=1)
     poly_interaction_test = poly_interaction_test.drop(unselected_cols, axis=1)
 
-    df_train = df_train.join(poly_interaction_train.drop(['EXT_SOURCE_2'], axis=1))
-    df_test = df_test.join(poly_interaction_test.drop(['EXT_SOURCE_2'], axis=1))
+    df_train = df_train.join(poly_interaction_train.drop(['EXT_SOURCE_2', 'DAR'], axis=1))
+    df_test = df_test.join(poly_interaction_test.drop(['EXT_SOURCE_2', 'DAR'], axis=1))
 
     # df_train1 = df_train.fillna(df_train.mean())
     df = df_train.append(df_test)
