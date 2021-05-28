@@ -15,7 +15,7 @@ from parameters import get_args
 
 
 # Light GBM
-def kfold_ligthgbm(df, num_folds=5, stratified=True):
+def kfold_ligthgbm(df, num_folds=4, stratified=True):
     # Trong file data mình đã xử lí test chưa có biến target
     df_train = df[df['TARGET'].notnull()]
     df_test = df[df['TARGET'].isnull()]
@@ -53,7 +53,7 @@ def kfold_ligthgbm(df, num_folds=5, stratified=True):
             )
 
         clf.fit(train_x, train_y, eval_set=[(train_x, train_y), (valid_x, valid_y)], 
-            eval_metric= 'auc', verbose= 1000, early_stopping_rounds= 200)
+            eval_metric= 'auc', verbose=1000, early_stopping_rounds=100)
 
         oof_preds[valid_idx] = clf.predict_proba(valid_x, num_iteration=clf.best_iteration_)[:, 1]
         sub_preds += clf.predict_proba(df_test[feats], num_iteration=clf.best_iteration_)[:, 1] / folds.n_splits
