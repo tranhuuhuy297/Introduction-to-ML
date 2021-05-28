@@ -87,10 +87,12 @@ def application_train_test(args, nan_as_category=True):
     del df
     gc.collect()
 
-    for i in missing_columns(df_train1).index.values:
-        for j in df_train1[df_train1[i].isna()].SK_ID_CURR.values:
-            df_train1.drop(df_train1[df_train1['SK_ID_CURR']==j].index, inplace=True)
-
+    df_train1 = df_train1.fillna(df_train1.median())
+    
+    target_test = df_test1.TARGET
+    df_test1 = df_test1[df_test1.columns.difference(['TARGET'])].fillna(df_test1[df_test1.columns.difference(['TARGET']).values].median())
+    df_test1['TARGET'] = target_test
+    
     for i in df_train1.columns.difference(['TARGET', 'SK_ID_CURR']).values:
         scaler_ = preprocessing.StandardScaler()
         df_train1[i] =  scaler_.fit_transform(pd.DataFrame(df_train1[i]))
@@ -358,35 +360,41 @@ def data_debug(args):
 def read_data(args):
     df_train, df_test = application_train_test(args, nan_as_category=args.nan_as_cat)
     df = df_train.append(df_test)
+    print('Done application')
 
     # Bureau
     df_bureau = bureau(args, nan_as_category=args.nan_as_cat)
     df = df.join(df_bureau, how='left', on='SK_ID_CURR')
     del df_bureau
     gc.collect()
+    print('Done bureau')
 
     # Previous Apllication
     df_prev = previous_application(args, nan_as_category=args.nan_as_cat)
     df = df.join(df_prev, how='left', on='SK_ID_CURR')
     del df_prev
     gc.collect()
+    print('Done Previous Application')
 
     # POS cash
     df_pos_cash = pos_cash(args, nan_as_category=args.nan_as_cat)
     df = df.join(df_pos_cash, how='left', on='SK_ID_CURR')
     del df_pos_cash
     gc.collect()
+    print('Done POS cash')
 
     # Install payment
     df_ins_pay = installments_payments(args, nan_as_category=args.nan_as_cat)
     df = df.join(df_ins_pay, how='left', on='SK_ID_CURR')
     del df_ins_pay
     gc.collect()
+    print('Done Install Payment')
 
     # Credit Card
     df_credit = credit_card_balance(args, nan_as_category=args.nan_as_cat)
     df = df.join(df_credit, how='left', on='SK_ID_CURR')
     del df_credit
     gc.collect()
+    print('Credit Card')
 
     return df
