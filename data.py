@@ -25,11 +25,11 @@ def application_train_test(args, nan_as_category=True):
     df_train = pd.read_csv(args.data_path + 'application_train.csv', nrows=args.nrows)
     df_test = pd.read_csv(args.data_path + 'application_test.csv', nrows=args.nrows)
 
-    df_train = df_train.drop(missing_columns(df_train).head(26).index.values, axis=1)
-
     # Trộn train và test
     df = df_train.copy()
     df = df.append(df_test)
+
+    df = df.drop(missing_columns(df).head(26).index.values, axis=1)
 
     # Chỉ có 4 bản ghi XNA nên xóa luôn (nhiễu)
     df = df[df['CODE_GENDER'] != 'XNA']
