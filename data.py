@@ -6,6 +6,8 @@ import pandas as pd
 from sklearn import preprocessing
 from sklearn.preprocessing import PolynomialFeatures
 
+from verstack import NaNImputer
+
 from utils import *
 
 
@@ -78,7 +80,6 @@ def application_train_test(args, nan_as_category=True):
     df_train = df_train.join(poly_interaction_train.drop(['EXT_SOURCE_2', 'DAR'], axis=1))
     df_test = df_test.join(poly_interaction_test.drop(['EXT_SOURCE_2', 'DAR'], axis=1))
 
-    # df_train1 = df_train.fillna(df_train.mean())
     df = df_train.append(df_test)
 
     df_train1 = df[df.TARGET.notnull()]
@@ -87,10 +88,11 @@ def application_train_test(args, nan_as_category=True):
     del df
     gc.collect()
 
-    df_train1 = df_train1.fillna(df_train1.median())
+    imputer = NaNImputer()
+    df_train1 = imputer.impute(df_train1)
     
     target_test = df_test1.TARGET
-    df_test1 = df_test1[df_test1.columns.difference(['TARGET'])].fillna(df_test1[df_test1.columns.difference(['TARGET']).values].median())
+    df_test1 = imputer.impute(df_test1[df_test1.columns.difference(['TARGET']).values])    
     df_test1['TARGET'] = target_test
     
     for i in df_train1.columns.difference(['TARGET', 'SK_ID_CURR']).values:
@@ -123,13 +125,13 @@ def bureau(args, nan_as_category=True):
     gc.collect()
 
     num_aggregations = {
-        'DAYS_CREDIT': [ 'mean', 'var'],
-        'DAYS_CREDIT_ENDDATE': [ 'mean'],
+        'DAYS_CREDIT': ['mean'],
+        'DAYS_CREDIT_ENDDATE': ['mean'],
         'DAYS_CREDIT_UPDATE': ['mean'],
         'CREDIT_DAY_OVERDUE': ['mean'],
         'AMT_CREDIT_MAX_OVERDUE': ['mean'],
-        'AMT_CREDIT_SUM': [ 'mean', 'sum'],
-        'AMT_CREDIT_SUM_DEBT': [ 'mean', 'sum'],
+        'AMT_CREDIT_SUM': ['mean', 'sum'],
+        'AMT_CREDIT_SUM_DEBT': ['mean', 'sum'],
         'AMT_CREDIT_SUM_OVERDUE': ['mean'],
         'AMT_CREDIT_SUM_LIMIT': ['mean', 'sum'],
         'AMT_ANNUITY': ['max', 'mean'],
@@ -395,6 +397,6 @@ def read_data(args):
     df = df.join(df_credit, how='left', on='SK_ID_CURR')
     del df_credit
     gc.collect()
-    print('Credit Card')
+    print('Done Credit Card')
 
     return df
