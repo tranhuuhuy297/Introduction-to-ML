@@ -6,8 +6,6 @@ import pandas as pd
 from sklearn import preprocessing
 from sklearn.preprocessing import PolynomialFeatures
 
-from verstack import NaNImputer
-
 from utils import *
 
 
@@ -87,13 +85,6 @@ def application_train_test(args, nan_as_category=True):
 
     del df
     gc.collect()
-
-    # imputer = NaNImputer()
-    # df_train1 = imputer.impute(df_train1)
-    
-    target_test = df_test1.TARGET
-    df_test1 = imputer.impute(df_test1[df_test1.columns.difference(['TARGET']).values])    
-    df_test1['TARGET'] = target_test
     
     for i in df_train1.columns.difference(['TARGET', 'SK_ID_CURR']).values:
         scaler_ = preprocessing.StandardScaler()
