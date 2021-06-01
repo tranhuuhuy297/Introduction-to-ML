@@ -88,8 +88,8 @@ def application_train_test(args, nan_as_category=True):
     del df
     gc.collect()
 
-    imputer = NaNImputer()
-    df_train1 = imputer.impute(df_train1)
+    # imputer = NaNImputer()
+    # df_train1 = imputer.impute(df_train1)
     
     target_test = df_test1.TARGET
     df_test1 = imputer.impute(df_test1[df_test1.columns.difference(['TARGET']).values])    
@@ -297,7 +297,7 @@ def credit_card_balance(args, nan_as_category=True):
 
     # General aggregations
     cc.drop(['SK_ID_PREV'], axis= 1, inplace=True)
-    cc_agg = cc.groupby('SK_ID_CURR').agg([ 'max', 'mean', 'sum', 'var'])
+    cc_agg = cc.groupby('SK_ID_CURR').agg(['max', 'mean', 'sum', 'var'])
     cc_agg.columns = pd.Index(['CC_' + e[0] + "_" + e[1].upper() for e in cc_agg.columns.tolist()])
     
     # Count credit card lines
