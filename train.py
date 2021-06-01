@@ -17,8 +17,8 @@ def main(args, **model_kwargs):
     if (args.train):
         df = read_data(args)
         df.to_csv('data.csv', index=False)
-        feat_importance = kfold_ligthgbm(df, num_folds=4, stratified=True)
-        feat_importance.to_csv('feat_importance.csv', index=False)
+        # feat_importance = kfold_ligthgbm(df, num_folds=4, stratified=True)
+        # feat_importance.to_csv('feat_importance.csv', index=False)
 
 if __name__ == "__main__":
     args = get_args()
