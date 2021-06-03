@@ -42,7 +42,7 @@ def missing_columns(dataframe):
     concat_values.columns = ['Missing Count','Missing Count Ratio','Missing Count %']
     
     # return the required values
-    return concat_values[concat_values.iloc[:,1]!=0]
+    return concat_values
 
 
 def remove_outlier_IQR(df):
