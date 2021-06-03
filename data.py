@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from sklearn import preprocessing
+from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import PolynomialFeatures
 
 from utils import *
@@ -38,7 +39,11 @@ def application_train_test(args, nan_as_category=True):
     df = df.drop(drop_columns, axis=1)
 
     # Error value 365243
+    # Cal year by divide -365
+    day_columns = [i for i in df.columns.values if i.startswith('DAY')]
     df['DAYS_EMPLOYED'].replace(365243, np.nan, inplace= True)
+    for i in day_columns:
+        df[i] = df[i] / -365
 
     # Create some new features
     df['DIR'] = df['AMT_CREDIT'] / df['AMT_INCOME_TOTAL']
@@ -46,14 +51,25 @@ def application_train_test(args, nan_as_category=True):
     df['ACR'] = df['AMT_ANNUITY'] / df['AMT_CREDIT']
     df['DAR'] = df['DAYS_EMPLOYED'] / df['DAYS_BIRTH']
 
-    # Encode categorical feature
-    df, df_cat = one_hot_encoder(df, nan_as_category)
+    df['CNT_CHILDREN'] = df['CNT_CHILDREN'].fillna(0)
+    df['CNT_FAM_MEMBERS'] = df['CNT_FAM_MEMBERS'].fillna(1)
 
     # Test has no target
     df_train = df[df.TARGET.notnull()]
     df_test = df[df.TARGET.isnull()]
 
-    poly_fitting_vars = ['EXT_SOURCE_3', 'EXT_SOURCE_2', 'EXT_SOURCE_1', 'DAR']
+    imputer = SimpleImputer(missing_values=np.nan, strategy='median')
+    missing_col = df_train.select_dtypes(exclude='O').columns.difference(['TARGET', 'SK_ID_CURR']).values[2:]
+    df_train[missing_col] = imputer.fit_transform(df_train[missing_col])
+    df_test[missing_col] = imputer.transform(df_test[missing_col])
+
+    df = df_train.append(df_test)
+    df = one_hot_encoder(df, False)[0]
+    df_train = df[df.TARGET.notnull()]
+    df_test = df[df.TARGET.isnull()]
+
+    poly_fitting_vars = ['EXT_SOURCE_3', 'EXT_SOURCE_2', 'EXT_SOURCE_1', 'DAYS_EMPLOYED', 'DAYS_BIRTH']
+
     df_train[poly_fitting_vars] = df_train[poly_fitting_vars].fillna(df_train[poly_fitting_vars].median())
     df_test[poly_fitting_vars] = df_test[poly_fitting_vars].fillna(df_test[poly_fitting_vars].median())
 
@@ -75,8 +91,12 @@ def application_train_test(args, nan_as_category=True):
     poly_interaction_train = poly_interaction_train.drop(unselected_cols, axis=1)
     poly_interaction_test = poly_interaction_test.drop(unselected_cols, axis=1)
 
-    df_train = df_train.join(poly_interaction_train.drop(['EXT_SOURCE_2', 'DAR'], axis=1))
-    df_test = df_test.join(poly_interaction_test.drop(['EXT_SOURCE_2', 'DAR'], axis=1))
+    df_train = df_train.join(poly_interaction_train.drop(['EXT_SOURCE_2'], axis=1))
+    df_test = df_test.join(poly_interaction_test.drop(['EXT_SOURCE_2'], axis=1))
+
+    for i in missing_columns(df_train).index.values:
+        for j in df_train[df_train[i].isna()].SK_ID_CURR.values:
+            df_train.drop(df_train[df_train['SK_ID_CURR']==j].index, inplace=True)
 
     df = df_train.append(df_test)
 
@@ -250,10 +270,11 @@ def installments_payments(args, nan_as_category=True):
     # Percentage and difference paid in each installment (amount paid and installment value)
     ins['PAYMENT_PERC'] = ins['AMT_PAYMENT'] / ins['AMT_INSTALMENT']
     ins['PAYMENT_DIFF'] = ins['AMT_INSTALMENT'] - ins['AMT_PAYMENT']
-    # Days past due and days before due (no negative values)
+    # Days past due (no negative values)
     ins['DPD'] = ins['DAYS_ENTRY_PAYMENT'] - ins['DAYS_INSTALMENT']
-    ins['DBD'] = ins['DAYS_INSTALMENT'] - ins['DAYS_ENTRY_PAYMENT']
     ins['DPD'] = ins['DPD'].apply(lambda x: x if x > 0 else 0)
+    # Days before due
+    ins['DBD'] = ins['DAYS_INSTALMENT'] - ins['DAYS_ENTRY_PAYMENT']
     ins['DBD'] = ins['DBD'].apply(lambda x: x if x > 0 else 0)
 
     # Features: Perform aggregations
