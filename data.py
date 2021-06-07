@@ -59,7 +59,7 @@ def application_train_test(args, nan_as_category=True):
     df_test = df[df.TARGET.isnull()]
 
     imputer = SimpleImputer(missing_values=np.nan, strategy='median')
-    missing_col = df_train.select_dtypes(exclude='O').columns.difference(['TARGET', 'SK_ID_CURR']).values[2:]
+    missing_col = df_train.select_dtypes(exclude='O').columns.difference(['TARGET', 'SK_ID_CURR']).values
     df_train[missing_col] = imputer.fit_transform(df_train[missing_col])
     df_test[missing_col] = imputer.transform(df_test[missing_col])
 
@@ -378,39 +378,39 @@ def read_data(args):
     df = df_train.append(df_test)
     print('Done application')
 
-    # # Bureau
-    # df_bureau = bureau(args, nan_as_category=args.nan_as_cat)
-    # df = df.join(df_bureau, how='left', on='SK_ID_CURR')
-    # del df_bureau
-    # gc.collect()
-    # print('Done bureau')
+    # Bureau
+    df_bureau = bureau(args, nan_as_category=args.nan_as_cat)
+    df = df.join(df_bureau, how='left', on='SK_ID_CURR')
+    del df_bureau
+    gc.collect()
+    print('Done bureau')
 
-    # # Previous Apllication
-    # df_prev = previous_application(args, nan_as_category=args.nan_as_cat)
-    # df = df.join(df_prev, how='left', on='SK_ID_CURR')
-    # del df_prev
-    # gc.collect()
-    # print('Done Previous Application')
+    # Previous Apllication
+    df_prev = previous_application(args, nan_as_category=args.nan_as_cat)
+    df = df.join(df_prev, how='left', on='SK_ID_CURR')
+    del df_prev
+    gc.collect()
+    print('Done Previous Application')
 
-    # # POS cash
-    # df_pos_cash = pos_cash(args, nan_as_category=args.nan_as_cat)
-    # df = df.join(df_pos_cash, how='left', on='SK_ID_CURR')
-    # del df_pos_cash
-    # gc.collect()
-    # print('Done POS cash')
+    # POS cash
+    df_pos_cash = pos_cash(args, nan_as_category=args.nan_as_cat)
+    df = df.join(df_pos_cash, how='left', on='SK_ID_CURR')
+    del df_pos_cash
+    gc.collect()
+    print('Done POS cash')
 
-    # # Install payment
-    # df_ins_pay = installments_payments(args, nan_as_category=args.nan_as_cat)
-    # df = df.join(df_ins_pay, how='left', on='SK_ID_CURR')
-    # del df_ins_pay
-    # gc.collect()
-    # print('Done Install Payment')
+    # Install payment
+    df_ins_pay = installments_payments(args, nan_as_category=args.nan_as_cat)
+    df = df.join(df_ins_pay, how='left', on='SK_ID_CURR')
+    del df_ins_pay
+    gc.collect()
+    print('Done Install Payment')
 
-    # # Credit Card
-    # df_credit = credit_card_balance(args, nan_as_category=args.nan_as_cat)
-    # df = df.join(df_credit, how='left', on='SK_ID_CURR')
-    # del df_credit
-    # gc.collect()
-    # print('Done Credit Card')
+    # Credit Card
+    df_credit = credit_card_balance(args, nan_as_category=args.nan_as_cat)
+    df = df.join(df_credit, how='left', on='SK_ID_CURR')
+    del df_credit
+    gc.collect()
+    print('Done Credit Card')
 
     return df
